@@ -1,0 +1,137 @@
+package com.myspace.tfv_project_v1;
+
+import com.Booking;
+import com.Translator;
+
+
+/**********************************************************************************************************
+*********************Hard CONSTRAINT*********************************************************************
+**********************************************************************************************************/
+
+rule "requiredLanguage"
+    when
+        $t:Translator($leftid:id,$language:language)
+        Booking(translator==$t,language!=$language)
+    then
+        scoreHolder.addHardConstraintMatch(kcontext, -1);
+end
+
+rule "requiredDistance"
+    when
+        com.customerDistance($idT:translator_id,$idB:booking_id,temp_travel_distance_public >120)
+        $t:Translator(id==$idT)
+        Booking(translator==$t,id==$idB)
+    then
+        scoreHolder.addHardConstraintMatch(kcontext, -1);
+end
+
+rule "translatorCannotGetJobSameTime"
+    
+when
+  Booking($id:id,$t:translator,$start:startTime,$EndTime:endTime)
+  Booking(id!=$id,translator==$t,startTime==$start,$EndTime==endTime)
+then
+  scoreHolder.addHardConstraintMatch(kcontext, -1);
+end
+
+rule "translatorCannotGetWhenTravelling"
+    
+when
+  $t:Translator($idT:id)
+  Booking($t==translator,$idB:id,$start:startTime,$EndTime:endTime,type=="tfm")
+  com.customerDistance($idT==translator_id,$idB==booking_id,$duree:temp_travel_time_public)
+  Booking(translator==$t,startTime.isAfter($start.minusMinutes($duree)),startTime.isBefore($EndTime),type=="tfm")
+then
+        
+scoreHolder.addHardConstraintMatch(kcontext, -1);
+
+end
+
+
+
+/**********************************************************************************************************
+*********************MEDUIM CONSTRAINT*********************************************************************
+**********************************************************************************************************/
+
+rule "translatorRank4"
+    
+  when
+       $t:com.Translator($idT:id,level=="4")
+       com.customerDistance($idT==translator_id,$idB:booking_id,temp_travel_distance_public<100)
+       Booking($idB==id,$t==translator);
+  then
+       scoreHolder.addMediumConstraintMatch(kcontext, 8000);
+end
+
+rule "translatorRank3ForHc"
+
+when 
+       $t:com.Translator($idT:id,level=="3")
+       com.customerDistance($idT==translator_id,$idB:booking_id,temp_travel_distance_public<100)
+       Booking($idB==id,$t==translator);
+then
+        scoreHolder.addMediumConstraintMatch(kcontext, 7000);
+end
+
+rule "translatorRank2ForHc"
+
+when 
+       $t:com.Translator($idT:id,level=="2")
+       com.customerDistance($idT==translator_id,$idB:booking_id,temp_travel_distance_public<100)
+       Booking($idB==id,$t==translator);
+then
+        scoreHolder.addMediumConstraintMatch(kcontext, 7000);
+end
+
+rule "translatorRank1CForHc"
+
+when 
+       $t:com.Translator($idT:id,level=="1C")
+       com.customerDistance($idT==translator_id,$idB:booking_id,temp_travel_distance_public<80)
+       Booking($idB==id,$t==translator);
+then
+        scoreHolder.addMediumConstraintMatch(kcontext, 3000);
+end
+
+rule "translatorRank1BForHc"
+
+when 
+       $t:com.Translator($idT:id,level=="1B")
+       com.customerDistance($idT==translator_id,$idB:booking_id,temp_travel_distance_public<60)
+       Booking($idB==id,$t==translator);
+then
+        scoreHolder.addMediumConstraintMatch(kcontext, 2000);
+end
+
+rule "translatorRank1AForHc"
+
+when 
+       $t:com.Translator($idT:id,level=="1A")
+       com.customerDistance($idT==translator_id,$idB:booking_id,temp_travel_distance_public<40)
+       Booking($idB==id,$t==translator);
+then
+        scoreHolder.addMediumConstraintMatch(kcontext, 1000);
+end
+
+/**********************************************************************************************************
+*********************SOFT CONSTRAINT***********************************************************************
+**********************************************************************************************************/
+
+
+/*rule "translatorDistance"
+    when
+        com.customTranslatorDistance($t:translator,$dist:distance)
+        Booking($leftid:id,$t==translator);
+    then
+        scoreHolder.addSoftConstraintMatch(kcontext, -$dist);
+end*/
+
+rule "translatorBestFeedBack"
+
+    when
+        com.customerDistance($idt:translator_id,temp_travel_distance_public<=5 )
+        $t:com.Translator($idt==id,$feedBack:feedBack)
+        Booking($leftid:id,$t==translator)
+    then
+        scoreHolder.addSoftConstraintMatch(kcontext, $feedBack*10);
+end
